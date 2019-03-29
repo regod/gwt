@@ -5,11 +5,17 @@ import (
 	"net/http"
 )
 
-type Application struct {
-	server *http.Server
-	router *Router
-	//ctx *Context
-}
+type (
+        // Application main instance
+	Application struct {
+		server *http.Server
+		router *Router
+		ctx    *Context
+	}
+
+        // HandlerFunc function to serve request
+	HandlerFunc func(*Context) error
+)
 
 func New() *Application {
 	app := &Application{
@@ -20,17 +26,18 @@ func New() *Application {
 	return app
 }
 
-func (app *Application) AddRoute(path string, h http.HandlerFunc) {
+func (app *Application) AddRoute(path string, h HandlerFunc) {
 	app.router.Register(path, h)
 }
 
 func (app *Application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// build req context
+	ctx := NewContext(app, w, r)
 	// detect uri to handler
 	path := r.URL.Path
-	h := app.router.Detect(path)
+	h := app.router.Detect(path, ctx)
 	// execute handler
-	h(w, r)
+	h(ctx)
 }
 
 func (app *Application) Run(address string) error {
