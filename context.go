@@ -1,6 +1,7 @@
 package gwt
 
 import (
+        "encoding/json"
 	"net/http"
 	"net/url"
 )
@@ -38,4 +39,45 @@ func (ctx *Context) GetParam(key string) string {
 // Writer return ResponseWriter
 func (ctx *Context) Writer() http.ResponseWriter {
 	return ctx.writer
+}
+
+// Request return http.Request
+func (ctx *Context) Request() *http.Request {
+        return ctx.request
+}
+
+// SetHeader set response header
+func (ctx *Context) SetHeader(key, value string) {
+        header := ctx.Writer().Header()
+        header.Set(key, value)
+}
+
+func (ctx *Context) setContentType(contenttype string) {
+        ctx.SetHeader("Content-Type", contenttype)
+}
+
+// RespBase response with status_code, data string, content type
+func (ctx *Context) RespBase(status_code int, data string, contenttype string) error {
+        ctx.setContentType(contenttype)
+        ctx.writer.WriteHeader(status_code)
+        _, err := ctx.Writer().Write([]byte(data))
+        return err
+}
+
+// RespText simple text response
+func (ctx *Context) RespText(status_code int, data string) error {
+        return ctx.RespBase(status_code, data, "text/plain")
+}
+
+// RespHtml html response
+func (ctx *Context) RespHtml(status_code int, data string) error {
+        return ctx.RespBase(status_code, data, "text/html")
+}
+
+// RespJson json response
+func (ctx *Context) RespJson(status_code int, data interface{}) error {
+        enc := json.NewEncoder(ctx.writer)
+        ctx.setContentType("application/json; charset=UTF-8")
+        ctx.writer.WriteHeader(status_code)
+        return enc.Encode(data)
 }
