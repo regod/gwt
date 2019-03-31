@@ -6,19 +6,19 @@ import (
 )
 
 type (
-        // Application main instance
+	// Application main instance
 	Application struct {
-		server *http.Server
-		router *Router
-		ctx    *Context
-                middlewares []MiddlewareFunc
+		server      *http.Server
+		router      *Router
+		ctx         *Context
+		middlewares []MiddlewareFunc
 	}
 
-        // HandlerFunc function to serve request
+	// HandlerFunc function to serve request
 	HandlerFunc func(*Context) error
 
-        // MiddlewareFunc function for middleware
-        MiddlewareFunc func(HandlerFunc) HandlerFunc
+	// MiddlewareFunc function for middleware
+	MiddlewareFunc func(HandlerFunc) HandlerFunc
 )
 
 func New() *Application {
@@ -31,15 +31,15 @@ func New() *Application {
 }
 
 func (app *Application) SetMiddlewares(middlewares []MiddlewareFunc) {
-    app.middlewares = middlewares
+	app.middlewares = middlewares
 }
 
 func (app *Application) AddRoute(path string, h HandlerFunc, middlewares []MiddlewareFunc) {
-        // chain middleware functions
-        contains := append(app.middlewares, middlewares...)
-        for i := len(contains) -1; i >= 0; i-- {
-            h = contains[i](h)
-        }
+	// chain middleware functions
+	contains := append(app.middlewares, middlewares...)
+	for i := len(contains) - 1; i >= 0; i-- {
+		h = contains[i](h)
+	}
 
 	app.router.Register(path, h)
 }

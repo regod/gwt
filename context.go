@@ -1,7 +1,7 @@
 package gwt
 
 import (
-        "encoding/json"
+	"encoding/json"
 	"net/http"
 	"net/url"
 )
@@ -14,6 +14,7 @@ type Context struct {
 	param    map[string]string
 	query    url.Values
 	postform url.Values
+	store    map[string]interface{}
 }
 
 // NewContext create a `Context` instance
@@ -36,6 +37,19 @@ func (ctx *Context) GetParam(key string) string {
 	return ctx.param[key]
 }
 
+// SetStore set custom variable to Context
+func (ctx *Context) SetStore(key string, val interface{}) {
+	if ctx.store == nil {
+		ctx.store = make(map[string]interface{})
+	}
+	ctx.store[key] = val
+}
+
+// GetStore get from Context
+func (ctx *Context) GetStore(key string) (val interface{}) {
+	return ctx.store[key]
+}
+
 // Writer return ResponseWriter
 func (ctx *Context) Writer() http.ResponseWriter {
 	return ctx.writer
@@ -43,41 +57,41 @@ func (ctx *Context) Writer() http.ResponseWriter {
 
 // Request return http.Request
 func (ctx *Context) Request() *http.Request {
-        return ctx.request
+	return ctx.request
 }
 
 // SetHeader set response header
 func (ctx *Context) SetHeader(key, value string) {
-        header := ctx.Writer().Header()
-        header.Set(key, value)
+	header := ctx.Writer().Header()
+	header.Set(key, value)
 }
 
 func (ctx *Context) setContentType(contenttype string) {
-        ctx.SetHeader("Content-Type", contenttype)
+	ctx.SetHeader("Content-Type", contenttype)
 }
 
 // RespBase response with status_code, data string, content type
 func (ctx *Context) RespBase(status_code int, data string, contenttype string) error {
-        ctx.setContentType(contenttype)
-        ctx.writer.WriteHeader(status_code)
-        _, err := ctx.Writer().Write([]byte(data))
-        return err
+	ctx.setContentType(contenttype)
+	ctx.writer.WriteHeader(status_code)
+	_, err := ctx.Writer().Write([]byte(data))
+	return err
 }
 
 // RespText simple text response
 func (ctx *Context) RespText(status_code int, data string) error {
-        return ctx.RespBase(status_code, data, "text/plain")
+	return ctx.RespBase(status_code, data, "text/plain")
 }
 
 // RespHtml html response
 func (ctx *Context) RespHtml(status_code int, data string) error {
-        return ctx.RespBase(status_code, data, "text/html")
+	return ctx.RespBase(status_code, data, "text/html")
 }
 
 // RespJson json response
 func (ctx *Context) RespJson(status_code int, data interface{}) error {
-        enc := json.NewEncoder(ctx.writer)
-        ctx.setContentType("application/json; charset=UTF-8")
-        ctx.writer.WriteHeader(status_code)
-        return enc.Encode(data)
+	enc := json.NewEncoder(ctx.writer)
+	ctx.setContentType("application/json; charset=UTF-8")
+	ctx.writer.WriteHeader(status_code)
+	return enc.Encode(data)
 }
