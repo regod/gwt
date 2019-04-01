@@ -19,12 +19,23 @@ type Context struct {
 
 // NewContext create a `Context` instance
 func NewContext(app *Application, w http.ResponseWriter, r *http.Request) *Context {
+	r.ParseForm()
 	return &Context{
-		app:     app,
-		request: r,
-		writer:  w,
-		param:   make(map[string]string),
+		app:      app,
+		request:  r,
+		writer:   w,
+		param:    make(map[string]string),
+		query:    r.URL.Query(),
+		postform: r.PostForm,
 	}
+}
+
+func (ctx *Context) Query() url.Values {
+	return ctx.query
+}
+
+func (ctx *Context) PostForm() url.Values {
+	return ctx.postform
 }
 
 // SetParam set path param value
