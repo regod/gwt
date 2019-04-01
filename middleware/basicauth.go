@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"gwt"
+	"github.com/regod/gwt"
 	"net/http"
 )
 

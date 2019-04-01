@@ -30,10 +30,14 @@ func New() *Application {
 	return app
 }
 
+//SetMiddlewares set global middlewares
 func (app *Application) SetMiddlewares(middlewares []MiddlewareFunc) {
 	app.middlewares = middlewares
 }
 
+// AddRoute add route rule, specify middlewares of the rule by `middlewares`
+// app.AddRoute("/user/list/", UserList, nil)
+// app.AddRoute("/user/:id/", UserGet, nil)
 func (app *Application) AddRoute(path string, h HandlerFunc, middlewares []MiddlewareFunc) {
 	// chain middleware functions
 	contains := append(app.middlewares, middlewares...)
