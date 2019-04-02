@@ -34,7 +34,7 @@ func (r *Router) Register(path string, h HandlerFunc) {
 	// split path by '/'
 	segs := strings.Split(path, "/")
 	// put every item into tree
-	curr_node := r.root
+	currNode := r.root
 	seg, param := "", ""
 	for i, v := range segs {
 		if i == 0 {
@@ -48,10 +48,10 @@ func (r *Router) Register(path string, h HandlerFunc) {
 			param = ""
 		}
 		isMatched := false
-		for _, cn := range curr_node.children {
+		for _, cn := range currNode.children {
 			if cn.seg == seg {
 				isMatched = true
-				curr_node = cn
+				currNode = cn
 				if seg == "*" && cn.param != param {
 					panic("different param")
 				}
@@ -62,48 +62,48 @@ func (r *Router) Register(path string, h HandlerFunc) {
 			n := &node{
 				seg:    seg,
 				param:  param,
-				parent: curr_node,
+				parent: currNode,
 			}
-			curr_node.children = append(curr_node.children, n)
-			curr_node = n
+			currNode.children = append(currNode.children, n)
+			currNode = n
 		}
 	}
-	if curr_node.handler != nil {
+	if currNode.handler != nil {
 		panic("two handlers in same path")
 	}
-	curr_node.handler = h
+	currNode.handler = h
 }
 
 // Detect detect `HandlerFunc` correspond with given `path`, param saved in Context
 func (r *Router) Detect(path string, ctx *Context) HandlerFunc {
 	path = strings.TrimSuffix(path, "/")
 	segs := strings.Split(path, "/")
-	curr_node := r.root
+	currNode := r.root
 	for i, v := range segs {
 		if i == 0 {
 			continue
 		}
 
 		isMatched := false
-		var wild_node *node
-		for _, cn := range curr_node.children {
+		var wildNode *node
+		for _, cn := range currNode.children {
 			if cn.seg == "*" {
-				wild_node = cn
+				wildNode = cn
 				continue
 			}
 			if cn.seg == v {
 				isMatched = true
-				curr_node = cn
+				currNode = cn
 				break
 			}
 		}
-		if !isMatched && wild_node != nil {
-			curr_node = wild_node
+		if !isMatched && wildNode != nil {
+			currNode = wildNode
 			// save param
-			ctx.param[curr_node.param] = v
+			ctx.param[currNode.param] = v
 		} else if !isMatched {
 			return nil
 		}
 	}
-	return curr_node.handler
+	return currNode.handler
 }

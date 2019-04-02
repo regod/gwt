@@ -81,28 +81,28 @@ func (ctx *Context) setContentType(contenttype string) {
 	ctx.SetHeader("Content-Type", contenttype)
 }
 
-// RespBase response with status_code, data string, content type
-func (ctx *Context) RespBase(status_code int, data string, contenttype string) error {
+// RespBase response with statusCode, data string, content type
+func (ctx *Context) RespBase(statusCode int, data string, contenttype string) error {
 	ctx.setContentType(contenttype)
-	ctx.writer.WriteHeader(status_code)
+	ctx.writer.WriteHeader(statusCode)
 	_, err := ctx.Writer().Write([]byte(data))
 	return err
 }
 
 // RespText simple text response
-func (ctx *Context) RespText(status_code int, data string) error {
-	return ctx.RespBase(status_code, data, "text/plain")
+func (ctx *Context) RespText(statusCode int, data string) error {
+	return ctx.RespBase(statusCode, data, "text/plain")
 }
 
 // RespHtml html response
-func (ctx *Context) RespHtml(status_code int, data string) error {
-	return ctx.RespBase(status_code, data, "text/html")
+func (ctx *Context) RespHtml(statusCode int, data string) error {
+	return ctx.RespBase(statusCode, data, "text/html")
 }
 
 // RespJson json response
-func (ctx *Context) RespJson(status_code int, data interface{}) error {
+func (ctx *Context) RespJson(statusCode int, data interface{}) error {
 	enc := json.NewEncoder(ctx.writer)
 	ctx.setContentType("application/json; charset=UTF-8")
-	ctx.writer.WriteHeader(status_code)
+	ctx.writer.WriteHeader(statusCode)
 	return enc.Encode(data)
 }
