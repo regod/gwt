@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 // Context contains the context of one request
@@ -11,10 +12,10 @@ type Context struct {
 	app      *Application
 	request  *http.Request
 	writer   http.ResponseWriter
-	param    map[string]string
+	param    sync.Map
 	query    url.Values
 	postform url.Values
-	store    map[string]interface{}
+	store    sync.Map
 }
 
 // NewContext create a `Context` instance
@@ -24,7 +25,6 @@ func NewContext(app *Application, w http.ResponseWriter, r *http.Request) *Conte
 		app:      app,
 		request:  r,
 		writer:   w,
-		param:    make(map[string]string),
 		query:    r.URL.Query(),
 		postform: r.PostForm,
 	}
@@ -40,25 +40,24 @@ func (ctx *Context) PostForm() url.Values {
 
 // SetParam set path param value
 func (ctx *Context) SetParam(key string, value string) {
-	ctx.param[key] = value
+	ctx.param.Store(key, value)
 }
 
 // GetParam get param by `key`
 func (ctx *Context) GetParam(key string) string {
-	return ctx.param[key]
+	value, _ := ctx.param.Load(key)
+	return value.(string)
 }
 
 // SetStore set custom variable to Context
 func (ctx *Context) SetStore(key string, val interface{}) {
-	if ctx.store == nil {
-		ctx.store = make(map[string]interface{})
-	}
-	ctx.store[key] = val
+	ctx.store.Store(key, val)
 }
 
 // GetStore get from Context
 func (ctx *Context) GetStore(key string) (val interface{}) {
-	return ctx.store[key]
+	val, _ = ctx.store.Load(key)
+	return val
 }
 
 // Writer return ResponseWriter

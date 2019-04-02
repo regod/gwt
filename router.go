@@ -100,7 +100,7 @@ func (r *Router) Detect(path string, ctx *Context) HandlerFunc {
 		if !isMatched && wildNode != nil {
 			currNode = wildNode
 			// save param
-			ctx.param[currNode.param] = v
+			ctx.SetParam(currNode.param, v)
 		} else if !isMatched {
 			return nil
 		}
