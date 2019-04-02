@@ -55,7 +55,11 @@ func (app *Application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	h := app.router.Detect(path, ctx)
 	// execute handler
-	h(ctx)
+	if h != nil {
+		h(ctx)
+	} else {
+		ctx.RespText(404, "Not Found")
+	}
 }
 
 func (app *Application) Run(address string) error {
