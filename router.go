@@ -15,6 +15,7 @@ type (
 		parent   *node
 		children []*node
 		handlers map[string]HandlerFunc // map{method: handler}
+		params   map[string][]string    // map{method: [param, param]}
 	}
 )
 
@@ -24,6 +25,7 @@ func NewRouter() *Router {
 		root: &node{
 			seg:      "",
 			handlers: make(map[string]HandlerFunc),
+			params:   make(map[string][]string),
 		},
 	}
 	return r
@@ -31,20 +33,20 @@ func NewRouter() *Router {
 
 // Register register a route rule, use trie tree
 func (r *Router) Register(method string, path string, h HandlerFunc) {
-	// path clean, remove '/' at the end if exist
-	path = strings.TrimSuffix(path, "/")
 	// split path by '/'
 	segs := strings.Split(path, "/")
 	// put every item into tree
 	currNode := r.root
 	seg, param := "", ""
+	var params []string
 	for i, v := range segs {
 		if i == 0 {
 			continue
 		}
-		if v[:1] == ":" {
+		if len(v) > 1 && v[:1] == ":" {
 			seg = "*"
 			param = v[1:]
+			params = append(params, param)
 		} else {
 			seg = v
 			param = ""
@@ -54,9 +56,6 @@ func (r *Router) Register(method string, path string, h HandlerFunc) {
 			if cn.seg == seg {
 				isMatched = true
 				currNode = cn
-				if seg == "*" && cn.param != param {
-					panic("different param")
-				}
 				break
 			}
 		}
@@ -66,19 +65,21 @@ func (r *Router) Register(method string, path string, h HandlerFunc) {
 				param:    param,
 				parent:   currNode,
 				handlers: make(map[string]HandlerFunc),
+				params:   make(map[string][]string),
 			}
 			currNode.children = append(currNode.children, n)
 			currNode = n
 		}
 	}
 	currNode.setHandler(method, h)
+	currNode.setParams(method, params)
 }
 
 // Detect detect `HandlerFunc` correspond with given `path`, param saved in Context
 func (r *Router) Detect(path string, ctx *Context) HandlerFunc {
-	path = strings.TrimSuffix(path, "/")
 	segs := strings.Split(path, "/")
 	currNode := r.root
+	var pvalues []string
 	for i, v := range segs {
 		if i == 0 {
 			continue
@@ -99,21 +100,30 @@ func (r *Router) Detect(path string, ctx *Context) HandlerFunc {
 		}
 		if !isMatched && wildNode != nil {
 			currNode = wildNode
-			// save param
-			ctx.SetParam(currNode.param, v)
+			pvalues = append(pvalues, v)
 		} else if !isMatched {
 			return nil
 		}
 	}
-	return currNode.getHandler(ctx.request.Method)
+	// save param
+	method := ctx.request.Method
+	for k, v := range MakeMapBySlices(currNode.getParams(method), pvalues) {
+		ctx.SetParam(k, v)
+	}
+	return currNode.getHandler(method)
 }
 
-// setHandler set handler with method, * means accept any method
-func (n *node) setHandler(method string, handler HandlerFunc) {
+func (n *node) fmtMethod(method string) string {
 	if method == "" {
 		method = "*"
 	}
 	method = strings.ToUpper(method)
+	return method
+}
+
+// setHandler set handler with method, * means accept any method
+func (n *node) setHandler(method string, handler HandlerFunc) {
+	method = n.fmtMethod(method)
 	_, ok := n.handlers[method]
 	if ok {
 		panic(fmt.Sprintf("%s handler conflict", method))
@@ -123,10 +133,43 @@ func (n *node) setHandler(method string, handler HandlerFunc) {
 
 // getHandler get handler by method
 func (n *node) getHandler(method string) HandlerFunc {
-	method = strings.ToUpper(method)
+	method = n.fmtMethod(method)
 	h, ok := n.handlers[method]
 	if !ok {
 		h = n.handlers["*"]
 	}
 	return h
+}
+
+// setParams set params with method, * means accept any method
+func (n *node) setParams(method string, params []string) {
+	method = n.fmtMethod(method)
+	_, ok := n.params[method]
+	if ok {
+		panic(fmt.Sprintf("%s handler conflict", method))
+	}
+	n.params[method] = params
+}
+
+// getParams get params by method
+func (n *node) getParams(method string) []string {
+	method = n.fmtMethod(method)
+	h, ok := n.params[method]
+	if !ok {
+		h = n.params["*"]
+	}
+	return h
+}
+
+func MakeMapBySlices(keys []string, vals []string) map[string]string {
+	res := make(map[string]string)
+	keys_len := len(keys)
+	vals_len := len(vals)
+	if keys_len != vals_len {
+		return nil
+	}
+	for i, key := range keys {
+		res[key] = vals[i]
+	}
+	return res
 }
