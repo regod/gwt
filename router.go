@@ -1,6 +1,7 @@
 package gwt
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -11,9 +12,9 @@ type (
 	node struct {
 		seg      string
 		param    string
-		handler  HandlerFunc
 		parent   *node
 		children []*node
+		handlers map[string]HandlerFunc // map{method: handler}
 	}
 )
 
@@ -21,14 +22,15 @@ type (
 func NewRouter() *Router {
 	r := &Router{
 		root: &node{
-			seg: "",
+			seg:      "",
+			handlers: make(map[string]HandlerFunc),
 		},
 	}
 	return r
 }
 
 // Register register a route rule, use trie tree
-func (r *Router) Register(path string, h HandlerFunc) {
+func (r *Router) Register(method string, path string, h HandlerFunc) {
 	// path clean, remove '/' at the end if exist
 	path = strings.TrimSuffix(path, "/")
 	// split path by '/'
@@ -60,18 +62,16 @@ func (r *Router) Register(path string, h HandlerFunc) {
 		}
 		if !isMatched {
 			n := &node{
-				seg:    seg,
-				param:  param,
-				parent: currNode,
+				seg:      seg,
+				param:    param,
+				parent:   currNode,
+				handlers: make(map[string]HandlerFunc),
 			}
 			currNode.children = append(currNode.children, n)
 			currNode = n
 		}
 	}
-	if currNode.handler != nil {
-		panic("two handlers in same path")
-	}
-	currNode.handler = h
+	currNode.setHandler(method, h)
 }
 
 // Detect detect `HandlerFunc` correspond with given `path`, param saved in Context
@@ -105,5 +105,28 @@ func (r *Router) Detect(path string, ctx *Context) HandlerFunc {
 			return nil
 		}
 	}
-	return currNode.handler
+	return currNode.getHandler(ctx.request.Method)
+}
+
+// setHandler set handler with method, * means accept any method
+func (n *node) setHandler(method string, handler HandlerFunc) {
+	if method == "" {
+		method = "*"
+	}
+	method = strings.ToUpper(method)
+	_, ok := n.handlers[method]
+	if ok {
+		panic(fmt.Sprintf("%s handler conflict", method))
+	}
+	n.handlers[method] = handler
+}
+
+// getHandler get handler by method
+func (n *node) getHandler(method string) HandlerFunc {
+	method = strings.ToUpper(method)
+	h, ok := n.handlers[method]
+	if !ok {
+		h = n.handlers["*"]
+	}
+	return h
 }

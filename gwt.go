@@ -36,16 +36,18 @@ func (app *Application) SetMiddlewares(middlewares []MiddlewareFunc) {
 }
 
 // AddRoute add route rule, specify middlewares of the rule by `middlewares`
-// app.AddRoute("/user/list/", UserList, nil)
-// app.AddRoute("/user/:id/", UserGet, nil)
-func (app *Application) AddRoute(path string, h HandlerFunc, middlewares []MiddlewareFunc) {
+// app.AddRoute("GET", "/user/list/", UserList, nil)
+// app.AddRoute("GET", "/user/:id/", UserGet, nil)
+// app.AddRoute("POST", "/users/", UserPost, nil)
+// app.AddRoute("*", "/users/", UserFunc, nil)  // any method
+func (app *Application) AddRoute(method string, path string, h HandlerFunc, middlewares []MiddlewareFunc) {
 	// chain middleware functions
 	contains := append(app.middlewares, middlewares...)
 	for i := len(contains) - 1; i >= 0; i-- {
 		h = contains[i](h)
 	}
 
-	app.router.Register(path, h)
+	app.router.Register(method, path, h)
 }
 
 func (app *Application) ServeHTTP(w http.ResponseWriter, r *http.Request) {
